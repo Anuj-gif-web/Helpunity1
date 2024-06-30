@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, Animated } from 'react-native';
 
 const SplashScreen = () => {
-  const [fadeAnim] = useState(new Animated.Value(0)); // Initial value for opacity: 0
+  const [fadeAnim] = useState(new Animated.Value(0)); // Initial value for opacity 0
 
   useEffect(() => {
     setTimeout(() => {
@@ -32,15 +32,15 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff', // White background or any other color
+    backgroundColor: '#fff', 
   },
   logo: {
-    width: 250, // Adjust the size as needed
-    height: 250, // Adjust the size as needed
+    width: 250, 
+    height: 250, 
   },
   text: {
-    color: '#06038D', // Blue color code
-    fontSize: 40, // Adjust size as needed
+    color: '#06038D', 
+    fontSize: 40, 
     fontWeight: 'bold',
   }
 });
