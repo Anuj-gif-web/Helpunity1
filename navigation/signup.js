@@ -50,6 +50,9 @@ const SignupScreen = () => {
           lastName: userType === 'volunteer' ? lastName : null,
           age: userType === 'volunteer' ? age : null,
           profession: userType === 'volunteer' ? profession : null,
+          followers: [],
+          following: [],
+          createdAt: new Date(),
         });
 
         await sendEmailVerification(user);
