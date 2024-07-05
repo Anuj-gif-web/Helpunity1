@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Modal, FlatList } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { auth, db } from '../firebase/firebaseconfig';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -10,6 +10,8 @@ const ProfileScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isFollowersModalVisible, setIsFollowersModalVisible] = useState(false);
+  const [isFollowingModalVisible, setIsFollowingModalVisible] = useState(false);
   const userId = auth.currentUser?.uid;
 
   useEffect(() => {
@@ -32,7 +34,10 @@ const ProfileScreen = ({ navigation }) => {
   const handleUpdate = async () => {
     setUpdating(true);
     try {
-      await updateDoc(doc(db, 'users', userId), userData);
+      await updateDoc(doc(db, 'users', userId), {
+        name: userData.name,
+        lastName: userData.lastName,
+      });
       setIsEditMode(false);
     } catch (error) {
       console.error("Error updating user data: ", error);
@@ -50,26 +55,36 @@ const ProfileScreen = ({ navigation }) => {
       });
   };
 
+  const renderFollowers = ({ item }) => (
+    <View style={styles.followerItem}>
+      <Text>{item}</Text>
+    </View>
+  );
+
+  const renderFollowing = ({ item }) => (
+    <View style={styles.followerItem}>
+      <Text>{item}</Text>
+    </View>
+  );
+
   if (loading) {
     return <ActivityIndicator size="large" color="#06038D" />;
   }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.followContainer}>
-        <TouchableOpacity onPress={() => navigation.navigate('Followers', { userId })}>
-          <Text style={styles.followText}>Followers: {userData.followers?.length || 0}</Text>
+      <MaterialCommunityIcons name="account" size={220} color="#06038D" style={styles.userIcon} />
+      <View style={styles.followBox}>
+        <TouchableOpacity style={styles.followBoxItem} onPress={() => setIsFollowersModalVisible(true)}>
+          <Text style={styles.followBoxText}>Followers</Text>
+          <Text style={styles.followBoxCount}>{userData.followers?.length || 0}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Following', { userId })}>
-          <Text style={styles.followText}>Following: {userData.following?.length || 0}</Text>
+        <View style={styles.separator} />
+        <TouchableOpacity style={styles.followBoxItem} onPress={() => setIsFollowingModalVisible(true)}>
+          <Text style={styles.followBoxText}>Following</Text>
+          <Text style={styles.followBoxCount}>{userData.following?.length || 0}</Text>
         </TouchableOpacity>
       </View>
-      <MaterialCommunityIcons
-        name="account"
-        size={120}
-        color="#06038D"
-        style={styles.userIcon}
-      />
       {isEditMode ? (
         <>
           <Text style={styles.label}>First Name</Text>
@@ -86,27 +101,15 @@ const ProfileScreen = ({ navigation }) => {
           />
           <Text style={styles.label}>Email</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: 'gray' }]}
             value={userData.email || ''}
-            onChangeText={(text) => setUserData({ ...userData, email: text })}
+            editable={false}
           />
           <Text style={styles.label}>Age</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: 'gray' }]}
             value={userData.age || ''}
-            onChangeText={(text) => setUserData({ ...userData, age: text })}
-          />
-          <Text style={styles.label}>Profession</Text>
-          <TextInput
-            style={styles.input}
-            value={userData.profession || ''}
-            onChangeText={(text) => setUserData({ ...userData, profession: text })}
-          />
-          <Text style={styles.label}>User Type</Text>
-          <TextInput
-            style={styles.input}
-            value={userData.userType || ''}
-            onChangeText={(text) => setUserData({ ...userData, userType: text })}
+            editable={false}
           />
           <TouchableOpacity style={styles.button} onPress={handleUpdate} disabled={updating}>
             <Text style={styles.buttonText}>{updating ? "Updating..." : "Update"}</Text>
@@ -122,10 +125,6 @@ const ProfileScreen = ({ navigation }) => {
           <Text style={styles.text}>{userData.email}</Text>
           <Text style={styles.label}>Age</Text>
           <Text style={styles.text}>{userData.age}</Text>
-          <Text style={styles.label}>Profession</Text>
-          <Text style={styles.text}>{userData.profession}</Text>
-          <Text style={styles.label}>User Type</Text>
-          <Text style={styles.text}>{userData.userType}</Text>
           <TouchableOpacity style={styles.button} onPress={() => setIsEditMode(true)}>
             <Text style={styles.buttonText}>Edit</Text>
           </TouchableOpacity>
@@ -134,6 +133,46 @@ const ProfileScreen = ({ navigation }) => {
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.buttonText}>Logout</Text>
       </TouchableOpacity>
+      <Modal
+        visible={isFollowersModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsFollowersModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Followers</Text>
+            <FlatList
+              data={userData.followers}
+              renderItem={renderFollowers}
+              keyExtractor={(item, index) => index.toString()}
+            />
+            <TouchableOpacity onPress={() => setIsFollowersModalVisible(false)} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        visible={isFollowingModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsFollowingModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Following</Text>
+            <FlatList
+              data={userData.following}
+              renderItem={renderFollowing}
+              keyExtractor={(item, index) => index.toString()}
+            />
+            <TouchableOpacity onPress={() => setIsFollowingModalVisible(false)} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -146,19 +185,35 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f4f7',
     padding: 20,
   },
-  followContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 20,
+  userIcon: {
+    marginBottom: 0,
   },
-  followText: {
-    color: '#06038D',
+  followBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#06038D',
+    overflow: 'hidden',
+  },
+  followBoxItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  followBoxText: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#06038D',
   },
-  userIcon: {
-    marginBottom: 20,
+  followBoxCount: {
+    fontSize: 16,
+    color: '#06038D',
+  },
+  separator: {
+    width: 1,
+    backgroundColor: '#06038D',
   },
   label: {
     width: '100%',
@@ -224,6 +279,39 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  closeButton: {
+    marginTop: 20,
+    backgroundColor: '#06038D',
+    padding: 10,
+    borderRadius: 10,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  followerItem: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
   },
 });
 

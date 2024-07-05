@@ -4,13 +4,15 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { registerRootComponent } from 'expo';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import LoginScreen from './navigation/login'; 
-import SignupScreen from './navigation/signup'; 
-import SplashScreen from './navigation/splash'; 
-import HomeScreen from './navigation/home'; 
-import ExploreScreen from './navigation/explore'; 
-import FundraiseScreen from './navigation/fundraise'; 
-import ProfileScreen from './navigation/profile'; 
+import LoginScreen from './navigation/login';
+import SignupScreen from './navigation/signup';
+import SplashScreen from './navigation/splash';
+import HomeScreen from './navigation/home';
+import ExploreScreen from './navigation/explore';
+import FundraiseScreen from './navigation/fundraise';
+import ProfileScreen from './navigation/profile';
+import AddFundraisePostScreen from './navigation/AddFundraisePostScreen';
+import FundraisePostDetailsScreen from './navigation/FundraisePostDetailsScreen';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from './navigation/AuthContext';
@@ -39,7 +41,7 @@ function App() {
 
   useEffect(() => {
     setTimeout(() => {
-      setIsSplashVisible(false); 
+      setIsSplashVisible(false);
     }, 4000);
   }, []);
 
@@ -59,39 +61,36 @@ function App() {
             iconName = focused ? 'account' : 'account-outline';
           }
 
-          return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
+          return <MaterialCommunityIcons name={iconName} size={35} color={color} />; // Increase icon size
         },
         tabBarActiveTintColor: '#06038D',
         tabBarInactiveTintColor: 'gray',
+        tabBarShowLabel: false, // Hide labels
+        tabBarStyle: {
+          height: 85, // Increase tab bar height
+          paddingVertical: 10, // Adjust padding to center icons
+        },
+        tabBarIconStyle: {
+          alignItems: 'center', // Center the icons horizontally
+          justifyContent: 'center', // Center the icons vertically
+        }
       })}
     >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeScreen} 
-        options={{
-          tabBarLabel: 'Home',
-        }}
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
       />
-      <Tab.Screen 
-        name="Explore" 
-        component={ExploreScreen} 
-        options={{
-          tabBarLabel: 'Explore',
-        }}
+      <Tab.Screen
+        name="Explore"
+        component={ExploreScreen}
       />
-      <Tab.Screen 
-        name="Fundraise" 
-        component={FundraiseScreen} 
-        options={{
-          tabBarLabel: 'Fundraise',
-        }}
+      <Tab.Screen
+        name="Fundraise"
+        component={FundraiseScreen}
       />
-      <Tab.Screen 
-        name="Profile" 
-        component={ProfileScreen} 
-        options={{
-          tabBarLabel: 'Profile',
-        }}
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
       />
     </Tab.Navigator>
   );
@@ -109,6 +108,8 @@ function App() {
             <Stack.Screen name="Signup" component={SignupScreen} options={{ headerShown: false }} />
           </>
         )}
+        <Stack.Screen name="AddFundraisePost" component={AddFundraisePostScreen} />
+        <Stack.Screen name="FundraisePostDetails" component={FundraisePostDetailsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
