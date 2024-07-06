@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   },
   shareButtonCircle: {
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderRadius: 20,
+    borderRadius: 10,
     padding: 5,
     borderWidth: 1,
     borderColor: '#06038D',
@@ -388,6 +388,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 10,
     padding: 20,
+    borderWidth:2,
+    borderColor: '#06038D'
   },
   modalHeader: {
     flexDirection: 'row',

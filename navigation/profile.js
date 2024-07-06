@@ -88,29 +88,37 @@ const ProfileScreen = ({ navigation }) => {
       {isEditMode ? (
         <>
           <Text style={styles.label}>First Name</Text>
-          <TextInput
-            style={styles.input}
-            value={userData.name || ''}
-            onChangeText={(text) => setUserData({ ...userData, name: text })}
-          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={userData.name || ''}
+              onChangeText={(text) => setUserData({ ...userData, name: text })}
+            />
+          </View>
           <Text style={styles.label}>Last Name</Text>
-          <TextInput
-            style={styles.input}
-            value={userData.lastName || ''}
-            onChangeText={(text) => setUserData({ ...userData, lastName: text })}
-          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={userData.lastName || ''}
+              onChangeText={(text) => setUserData({ ...userData, lastName: text })}
+            />
+          </View>
           <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={[styles.input, { color: 'gray' }]}
-            value={userData.email || ''}
-            editable={false}
-          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[styles.input, { color: 'gray' }]}
+              value={userData.email || ''}
+              editable={false}
+            />
+          </View>
           <Text style={styles.label}>Age</Text>
-          <TextInput
-            style={[styles.input, { color: 'gray' }]}
-            value={userData.age || ''}
-            editable={false}
-          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[styles.input, { color: 'gray' }]}
+              value={userData.age || ''}
+              editable={false}
+            />
+          </View>
           <TouchableOpacity style={styles.button} onPress={handleUpdate} disabled={updating}>
             <Text style={styles.buttonText}>{updating ? "Updating..." : "Update"}</Text>
           </TouchableOpacity>
@@ -118,13 +126,21 @@ const ProfileScreen = ({ navigation }) => {
       ) : (
         <>
           <Text style={styles.label}>First Name</Text>
-          <Text style={styles.text}>{userData.name}</Text>
+          <View style={styles.inputContainer}>
+            <Text style={styles.text}>{userData.name}</Text>
+          </View>
           <Text style={styles.label}>Last Name</Text>
-          <Text style={styles.text}>{userData.lastName}</Text>
+          <View style={styles.inputContainer}>
+            <Text style={styles.text}>{userData.lastName}</Text>
+          </View>
           <Text style={styles.label}>Email</Text>
-          <Text style={styles.text}>{userData.email}</Text>
+          <View style={styles.inputContainer}>
+            <Text style={styles.text}>{userData.email}</Text>
+          </View>
           <Text style={styles.label}>Age</Text>
-          <Text style={styles.text}>{userData.age}</Text>
+          <View style={styles.inputContainer}>
+            <Text style={styles.text}>{userData.age}</Text>
+          </View>
           <TouchableOpacity style={styles.button} onPress={() => setIsEditMode(true)}>
             <Text style={styles.buttonText}>Edit</Text>
           </TouchableOpacity>
@@ -141,15 +157,19 @@ const ProfileScreen = ({ navigation }) => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Followers</Text>
-            <FlatList
-              data={userData.followers}
-              renderItem={renderFollowers}
-              keyExtractor={(item, index) => index.toString()}
-            />
             <TouchableOpacity onPress={() => setIsFollowersModalVisible(false)} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>Close</Text>
+              <MaterialCommunityIcons name="close" size={24} color="#06038D" />
             </TouchableOpacity>
+            <Text style={styles.modalTitle}>Followers</Text>
+            {userData.followers?.length ? (
+              <FlatList
+                data={userData.followers}
+                renderItem={renderFollowers}
+                keyExtractor={(item, index) => index.toString()}
+              />
+            ) : (
+              <Text style={styles.noDataText}>No followers yet</Text>
+            )}
           </View>
         </View>
       </Modal>
@@ -161,15 +181,19 @@ const ProfileScreen = ({ navigation }) => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Following</Text>
-            <FlatList
-              data={userData.following}
-              renderItem={renderFollowing}
-              keyExtractor={(item, index) => index.toString()}
-            />
             <TouchableOpacity onPress={() => setIsFollowingModalVisible(false)} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>Close</Text>
+              <MaterialCommunityIcons name="close" size={24} color="#06038D" />
             </TouchableOpacity>
+            <Text style={styles.modalTitle}>Following</Text>
+            {userData.following?.length ? (
+              <FlatList
+                data={userData.following}
+                renderItem={renderFollowing}
+                keyExtractor={(item, index) => index.toString()}
+              />
+            ) : (
+              <Text style={styles.noDataText}>Not following anyone yet</Text>
+            )}
           </View>
         </View>
       </Modal>
@@ -196,6 +220,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#06038D',
     overflow: 'hidden',
+    width: '100%',
+    maxWidth: 300,
   },
   followBoxItem: {
     flex: 1,
@@ -222,34 +248,24 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     fontWeight: 'bold',
   },
+  inputContainer: {
+    width: '100%',
+    padding: 10,
+    borderColor: '#06038D',
+    borderWidth: 1,
+    borderRadius: 10,
+    marginBottom: 15,
+    backgroundColor: '#fff',
+    fontSize: 16,
+  },
   input: {
     width: '100%',
-    padding: 15,
-    borderColor: '#06038D',
-    borderWidth: 1,
-    borderRadius: 10,
-    marginBottom: 15,
-    backgroundColor: '#fff',
+    padding: 5,
     fontSize: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
   },
   text: {
-    width: '100%',
-    padding: 15,
-    borderColor: '#06038D',
-    borderWidth: 1,
-    borderRadius: 10,
-    marginBottom: 15,
-    backgroundColor: '#fff',
     fontSize: 16,
     color: '#06038D',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
   },
   button: {
     backgroundColor: '#06038D',
@@ -292,6 +308,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 20,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#06038D',
   },
   modalTitle: {
     fontSize: 20,
@@ -299,14 +317,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   closeButton: {
-    marginTop: 20,
-    backgroundColor: '#06038D',
-    padding: 10,
-    borderRadius: 10,
+    position: 'absolute',
+    top: 10,
+    right: 10,
   },
-  closeButtonText: {
-    color: '#fff',
+  noDataText: {
     fontSize: 16,
+    color: '#333',
   },
   followerItem: {
     paddingVertical: 10,

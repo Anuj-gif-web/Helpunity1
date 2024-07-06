@@ -13,6 +13,8 @@ import FundraiseScreen from './navigation/fundraise';
 import ProfileScreen from './navigation/profile';
 import AddFundraisePostScreen from './navigation/AddFundraisePostScreen';
 import FundraisePostDetailsScreen from './navigation/FundraisePostDetailsScreen';
+import AddEventScreen from './navigation/AddEventScreen';
+import EventDetailsScreen from './navigation/EventDetailsScreen';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from './navigation/AuthContext';
@@ -61,18 +63,18 @@ function App() {
             iconName = focused ? 'account' : 'account-outline';
           }
 
-          return <MaterialCommunityIcons name={iconName} size={35} color={color} />; // Increase icon size
+          return <MaterialCommunityIcons name={iconName} size={35} color={color} />;
         },
         tabBarActiveTintColor: '#06038D',
         tabBarInactiveTintColor: 'gray',
-        tabBarShowLabel: false, // Hide labels
+        tabBarShowLabel: false,
         tabBarStyle: {
-          height: 85, // Increase tab bar height
-          paddingVertical: 10, // Adjust padding to center icons
+          height: 85,
+          paddingVertical: 10,
         },
         tabBarIconStyle: {
-          alignItems: 'center', // Center the icons horizontally
-          justifyContent: 'center', // Center the icons vertically
+          alignItems: 'center',
+          justifyContent: 'center',
         }
       })}
     >
@@ -110,6 +112,8 @@ function App() {
         )}
         <Stack.Screen name="AddFundraisePost" component={AddFundraisePostScreen} />
         <Stack.Screen name="FundraisePostDetails" component={FundraisePostDetailsScreen} />
+        <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
+        <Stack.Screen name="AddEvent" component={AddEventScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

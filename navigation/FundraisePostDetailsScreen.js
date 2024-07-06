@@ -131,13 +131,13 @@ const styles = StyleSheet.create({
   },
   shareButton: {
     position: 'absolute',
-    top: 20,
-    right: 20,
+    top: 30,
+    right: 30,
     zIndex: 1,
   },
   shareButtonCircle: {
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderRadius: 20,
+    borderRadius: 10,
     padding: 5,
     borderWidth: 1,
     borderColor: '#06038D',
