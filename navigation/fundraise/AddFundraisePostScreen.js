@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
-import { db, auth } from '../firebase/firebaseconfig'; // Assuming you have imported auth for getting the current user
+import { db, auth } from '../../firebase/firebaseconfig'; // Assuming you have imported auth for getting the current user
 import { addDoc, collection, doc, updateDoc, getDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -17,16 +17,29 @@ const categories = [
 
 const recipients = ["Yourself", "Someone Else", "Charity or Organization"];
 
-const AddFundraisePostScreen = ({ navigation }) => {
-  const [selectedRecipient, setSelectedRecipient] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [goal, setGoal] = useState('');
-  const [coverPhoto, setCoverPhoto] = useState(null);
-  const [imageUrl, setImageUrl] = useState('');
+const AddFundraisePostScreen = ({ navigation, route }) => {
+  const { post, isEdit } = route.params || {};
+  const [selectedRecipient, setSelectedRecipient] = useState(post?.recipient || '');
+  const [selectedCategories, setSelectedCategories] = useState(post?.categories || []);
+  const [title, setTitle] = useState(post?.title || '');
+  const [description, setDescription] = useState(post?.description || '');
+  const [goal, setGoal] = useState(post?.goal || '');
+  const [coverPhoto, setCoverPhoto] = useState(post?.coverPhoto || null);
+  const [imageUrl, setImageUrl] = useState(post?.coverPhoto || '');
 
   const storage = getStorage();
+
+  useEffect(() => {
+    if (post) {
+      setSelectedRecipient(post.recipient);
+      setSelectedCategories(post.categories);
+      setTitle(post.title);
+      setDescription(post.description);
+      setGoal(post.goal);
+      setCoverPhoto(post.coverPhoto);
+      setImageUrl(post.coverPhoto);
+    }
+  }, [post]);
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -111,40 +124,62 @@ const AddFundraisePostScreen = ({ navigation }) => {
 
     try {
       const user = auth.currentUser; // Get the current user
-      const docRef = await addDoc(collection(db, 'fundraisePosts'), {
-        recipient: selectedRecipient,
-        categories: selectedCategories,
-        title,
-        description,
-        goal,
-        coverPhoto: imageUrl,
-        createdAt: new Date(),
-        userId: user.uid,  // Store the userId
-        userName: user.displayName, // Store the userName if available
-      });
-      console.log("Post added successfully");
 
-      const dynamicLink = await generateDynamicLink(docRef.id, title);
-      await updateDoc(doc(db, 'fundraisePosts', docRef.id), {
-        shareLink: dynamicLink,
-      });
+      if (isEdit && post?.id) {
+        // Update existing post
+        await updateDoc(doc(db, 'fundraisePosts', post.id), {
+          recipient: selectedRecipient,
+          categories: selectedCategories,
+          title,
+          description,
+          goal,
+          coverPhoto: imageUrl,
+          updatedAt: new Date(),
+        });
 
-      // Fetch the newly added post data
-      const newPostDoc = await getDoc(doc(db, 'fundraisePosts', docRef.id));
-      const newPost = { id: newPostDoc.id, ...newPostDoc.data() };
+        Alert.alert('Success', 'Fundraise post updated successfully!', [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]);
+      } else {
+        // Add new post
+        const docRef = await addDoc(collection(db, 'fundraisePosts'), {
+          recipient: selectedRecipient,
+          categories: selectedCategories,
+          title,
+          description,
+          goal,
+          coverPhoto: imageUrl,
+          createdAt: new Date(),
+          userId: user.uid,  // Store the userId
+          userName: user.displayName, // Store the userName if available
+        });
+        console.log("Post added successfully");
 
-      Alert.alert('Success', 'Fundraise post added successfully!', [
-        {
-          text: 'OK',
-          onPress: () => navigation.reset({
-            index: 0,
-            routes: [
-              { name: 'Fundraise' },
-              { name: 'FundraisePostDetails', params: { post: newPost } }
-            ]
-          })
-        }
-      ]);
+        const dynamicLink = await generateDynamicLink(docRef.id, title);
+        await updateDoc(doc(db, 'fundraisePosts', docRef.id), {
+          shareLink: dynamicLink,
+        });
+
+        // Fetch the newly added post data
+        const newPostDoc = await getDoc(doc(db, 'fundraisePosts', docRef.id));
+        const newPost = { id: newPostDoc.id, ...newPostDoc.data() };
+
+        Alert.alert('Success', 'Fundraise post added successfully!', [
+          {
+            text: 'OK',
+            onPress: () => navigation.reset({
+              index: 0,
+              routes: [
+                { name: 'Fundraise' },
+                { name: 'FundraisePostDetails', params: { post: newPost } }
+              ]
+            })
+          }
+        ]);
+      }
     } catch (error) {
       console.error("Error adding post:", error);
       Alert.alert('Error', "Error adding fundraise post: " + error.message);
@@ -221,7 +256,7 @@ const AddFundraisePostScreen = ({ navigation }) => {
       />
 
       <TouchableOpacity style={styles.button} onPress={handleAddPost}>
-        <Text style={styles.buttonText}>Add Post</Text>
+        <Text style={styles.buttonText}>{isEdit ? "Update Post" : "Add Post"}</Text>
       </TouchableOpacity>
     </KeyboardAwareScrollView>
   );

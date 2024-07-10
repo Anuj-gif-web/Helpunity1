@@ -8,13 +8,20 @@ import LoginScreen from './navigation/login';
 import SignupScreen from './navigation/signup';
 import SplashScreen from './navigation/splash';
 import HomeScreen from './navigation/home';
-import ExploreScreen from './navigation/explore';
-import FundraiseScreen from './navigation/fundraise';
-import ProfileScreen from './navigation/profile';
-import AddFundraisePostScreen from './navigation/AddFundraisePostScreen';
-import FundraisePostDetailsScreen from './navigation/FundraisePostDetailsScreen';
-import AddEventScreen from './navigation/AddEventScreen';
-import EventDetailsScreen from './navigation/EventDetailsScreen';
+import ExploreScreen from './navigation/explore/explore';
+import FundraiseScreen from './navigation/fundraise/fundraise';
+import ProfileScreen from './navigation/profile/profile';
+import AddFundraisePostScreen from './navigation/fundraise/AddFundraisePostScreen';
+import FundraisePostDetailsScreen from './navigation/fundraise/FundraisePostDetailsScreen';
+import AddEventScreen from './navigation/explore/AddEventScreen';
+import EventDetailsScreen from './navigation/explore/EventDetailsScreen';
+import UserProfileScreen from './navigation/profile/UserProfileScreen';
+import UserPosts from './navigation/profile/UserPostsScreen';
+
+import VolunteerHistoryScreen from './navigation/profile/VolunteerHistoryScreen';
+import ManageEventSignupsScreen from './navigation/profile/ManageEventSignupsScreen';
+import EventSignupsScreen from './navigation/profile/EventSignupsScreen';
+
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from './navigation/AuthContext';
@@ -69,7 +76,7 @@ function App() {
         tabBarInactiveTintColor: 'gray',
         tabBarShowLabel: false,
         tabBarStyle: {
-          height: 85,
+          height: 90,
           paddingVertical: 10,
         },
         tabBarIconStyle: {
@@ -78,22 +85,10 @@ function App() {
         }
       })}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-      />
-      <Tab.Screen
-        name="Explore"
-        component={ExploreScreen}
-      />
-      <Tab.Screen
-        name="Fundraise"
-        component={FundraiseScreen}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-      />
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Explore" component={ExploreScreen} />
+      <Tab.Screen name="Fundraise" component={FundraiseScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 
@@ -110,10 +105,15 @@ function App() {
             <Stack.Screen name="Signup" component={SignupScreen} options={{ headerShown: false }} />
           </>
         )}
-        <Stack.Screen name="AddFundraisePost" component={AddFundraisePostScreen} />
-        <Stack.Screen name="FundraisePostDetails" component={FundraisePostDetailsScreen} />
-        <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
-        <Stack.Screen name="AddEvent" component={AddEventScreen} />
+        <Stack.Screen name="AddFundraisePost" component={AddFundraisePostScreen} options={{ title: 'Add Fundraise Post', headerBackTitleVisible: false}} />
+        <Stack.Screen name="FundraisePostDetails" component={FundraisePostDetailsScreen} options={{ title: 'Fundraise Details', headerBackTitleVisible: false }}/>
+        <Stack.Screen name="EventDetails" component={EventDetailsScreen} options={{ title: 'Event Details', headerBackTitleVisible: false }}  />
+        <Stack.Screen name="AddEvent" component={AddEventScreen} options={{ title: 'Add Event Post', headerBackTitleVisible: false }} />
+        <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: 'User Profile', headerBackTitleVisible: false }} />
+        <Stack.Screen name="UserPosts" component={UserPosts} options={{ title: 'User Posts', headerBackTitleVisible: false }} />
+        <Stack.Screen name="VolunteerHistory" component={VolunteerHistoryScreen} options={{ title: 'Volunteer History', headerBackTitleVisible: false }} />
+        <Stack.Screen name="ManageEventSignups" component={ManageEventSignupsScreen} options={{ title: 'Your Event', headerBackTitleVisible: false }}/>
+        <Stack.Screen name="EventSignups" component={EventSignupsScreen} options={{ title: 'Event Signups', headerBackTitleVisible: false }}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

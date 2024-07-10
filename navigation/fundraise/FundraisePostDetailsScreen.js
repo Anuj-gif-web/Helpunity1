@@ -1,42 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, Share } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, Share, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ProgressBar } from 'react-native-paper';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import { db, auth } from '../firebase/firebaseconfig';
+import { db, auth } from '../../firebase/firebaseconfig';
 
 const FundraisePostDetailsScreen = ({ route, navigation }) => {
-  const { post } = route.params;
-  const [likes, setLikes] = useState(post.likes);
-  const [userLiked, setUserLiked] = useState(post.likedBy && post.likedBy[auth.currentUser?.uid]);
+  const { postId } = route.params;
+  const [post, setPost] = useState(null);
+  const [likes, setLikes] = useState(0);
+  const [userLiked, setUserLiked] = useState(false);
   const [author, setAuthor] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchAuthor = async () => {
-      if (post.userId) {
-        try {
-          const authorDoc = await getDoc(doc(db, 'users', post.userId));
+    const fetchPost = async () => {
+      try {
+        const postDoc = await getDoc(doc(db, 'fundraisePosts', postId));
+        if (postDoc.exists()) {
+          const postData = postDoc.data();
+          setPost(postData);
+          setLikes(postData.likes || 0);
+          setUserLiked(postData.likedBy && postData.likedBy[auth.currentUser?.uid]);
+
+          const authorDoc = await getDoc(doc(db, 'users', postData.userId));
           if (authorDoc.exists()) {
             setAuthor(authorDoc.data());
           }
-        } catch (error) {
-          console.error("Error fetching author: ", error);
+        } else {
+          alert('Post not found');
+          navigation.goBack();
         }
+      } catch (error) {
+        console.error("Error fetching post: ", error);
+        alert('Error fetching post');
       }
+      setLoading(false);
     };
 
-    fetchAuthor();
-  }, [post.userId]);
-
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Check out this fundraise post: https://example.com/posts/${post.id}`,
-      });
-    } catch (error) {
-      alert(error.message);
-    }
-  };
+    fetchPost();
+  }, [postId]);
 
   const handleLike = async () => {
     if (!auth.currentUser) {
@@ -45,7 +48,7 @@ const FundraisePostDetailsScreen = ({ route, navigation }) => {
     }
 
     try {
-      const postRef = doc(db, 'fundraisePosts', post.id);
+      const postRef = doc(db, 'fundraisePosts', postId);
       if (userLiked) {
         await updateDoc(postRef, {
           likes: likes - 1,
@@ -65,6 +68,32 @@ const FundraisePostDetailsScreen = ({ route, navigation }) => {
       console.error("Error liking post: ", error);
     }
   };
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `Check out this fundraise post: https://example.com/posts/${postId}`,
+      });
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  const handleEdit = () => {
+    navigation.navigate('AddFundraisePost', { post, isEdit: true });
+  };
+
+  if (loading) {
+    return <ActivityIndicator size="large" color="#06038D" />;
+  }
+
+  if (!post) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Post not found</Text>
+      </View>
+    );
+  }
 
   const progress = post.currentAmount / post.goal;
 
@@ -88,20 +117,25 @@ const FundraisePostDetailsScreen = ({ route, navigation }) => {
               />
               <Text style={[styles.likeCount, userLiked && { color: 'red' }]}>{likes}</Text>
             </TouchableOpacity>
+            {auth.currentUser?.uid === post.userId && (
+              <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+                <MaterialCommunityIcons name="pencil" size={24} color="#06038D" />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
         <View style={styles.tagsContainer}>
-          {post.categories.map((category, index) => (
+          {Array.isArray(post.categories) && post.categories.map((category, index) => (
             <View key={index} style={styles.tagContainer}>
               <Text style={styles.tag}>{category}</Text>
             </View>
           ))}
         </View>
         {author && (
-          <View style={styles.authorContainer}>
+          <TouchableOpacity style={styles.authorContainer} onPress={() => navigation.navigate('UserProfile', { userId: post.userId })}>
             <MaterialCommunityIcons name="account-circle" size={24} color="#06038D" />
             <Text style={styles.authorName}>{author.name} {author.lastName}</Text>
-          </View>
+          </TouchableOpacity>
         )}
         <View style={styles.progressBarContainer}>
           <ProgressBar progress={isNaN(progress) ? 0 : progress} color="#06038D" style={styles.progressBar} />
@@ -178,6 +212,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 5,
   },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -185,7 +224,7 @@ const styles = StyleSheet.create({
   },
   tagContainer: {
     backgroundColor: '#06038D',
-    borderRadius: 15, // Rounded corners
+    borderRadius: 15,
     paddingVertical: 5,
     paddingHorizontal: 10,
     marginRight: 5,
@@ -239,6 +278,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  errorText: {
+    fontSize: 18,
+    color: 'red',
+    textAlign: 'center',
   },
 });
 

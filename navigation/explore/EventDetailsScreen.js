@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Share, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db, auth } from '../firebase/firebaseconfig';
+import { db, auth } from '../../firebase/firebaseconfig';
 
 const EventDetailsScreen = ({ route, navigation }) => {
   const { eventId } = route.params;
@@ -41,6 +41,10 @@ const EventDetailsScreen = ({ route, navigation }) => {
 
     fetchEvent();
   }, [eventId, navigation]);
+
+  const handleEdit = () => {
+    navigation.navigate('AddEvent', { event, isEdit: true });
+  };
 
   const handleLike = async () => {
     if (!auth.currentUser) {
@@ -85,30 +89,50 @@ const EventDetailsScreen = ({ route, navigation }) => {
       alert("Please log in to volunteer for events.");
       return;
     }
-
-    Alert.alert(
-      "Confirm Signup",
-      "Are you sure you want to sign up for this event?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Confirm",
-          onPress: async () => {
-            try {
-              const eventRef = doc(db, 'events', eventId);
-              await updateDoc(eventRef, {
-                participants: [...event.participants, auth.currentUser.uid]
-              });
-              Alert.alert("Success", "You have successfully signed up for the event!");
-            } catch (error) {
-              console.error("Error signing up for event: ", error);
-              Alert.alert("Error", "Error signing up for the event: " + error.message);
-            }
-          }
+  
+    const userId = auth.currentUser.uid;
+  
+    try {
+      // Fetch the latest event data to ensure the participants list is up-to-date
+      const eventRef = doc(db, 'events', eventId);
+      const eventSnap = await getDoc(eventRef);
+      if (eventSnap.exists()) {
+        const eventData = eventSnap.data();
+        if (eventData.participants && eventData.participants[userId]) {
+          Alert.alert("Error", "You are already signed up for this event.");
+          return;
         }
-      ]
-    );
+  
+        Alert.alert(
+          "Confirm Signup",
+          "Are you sure you want to sign up for this event?",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Confirm",
+              onPress: async () => {
+                try {
+                  await updateDoc(eventRef, {
+                    [`participants.${userId}`]: true
+                  });
+                  Alert.alert("Success", "You have successfully signed up for the event!");
+                } catch (error) {
+                  console.error("Error signing up for event: ", error);
+                  Alert.alert("Error", "Error signing up for the event: " + error.message);
+                }
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Error', 'Event not found');
+      }
+    } catch (error) {
+      console.error("Error checking event participants: ", error);
+      Alert.alert("Error", "Error checking event participants: " + error.message);
+    }
   };
+  
 
   if (loading) {
     return <ActivityIndicator size="large" color="#06038D" />;
@@ -135,16 +159,23 @@ const EventDetailsScreen = ({ route, navigation }) => {
       <View style={styles.content}>
         <View style={styles.titleContainer}>
           <Text style={styles.title}>{event.title}</Text>
-          <TouchableOpacity style={styles.likeButton} onPress={handleLike}>
-            <MaterialCommunityIcons
-              name={userLiked ? "heart" : "heart-outline"}
-              size={24}
-              color={userLiked ? 'red' : 'gray'}
-            />
-            {likes > 0 && (
-              <Text style={[styles.likeCount, userLiked && { color: 'red' }]}>{likes}</Text>
+          <View style={styles.actionsContainer}>
+            <TouchableOpacity style={styles.likeButton} onPress={handleLike}>
+              <MaterialCommunityIcons
+                name={userLiked ? "heart" : "heart-outline"}
+                size={24}
+                color={userLiked ? 'red' : 'gray'}
+              />
+              {likes > 0 && (
+                <Text style={[styles.likeCount, userLiked && { color: 'red' }]}>{likes}</Text>
+              )}
+            </TouchableOpacity>
+            {event.organizer === auth.currentUser.uid && (
+              <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+                <MaterialCommunityIcons name="pencil" size={24} color="#06038D" />
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+          </View>
         </View>
         <View style={styles.tagsContainer}>
           <View style={styles.tagContainer}>
@@ -152,10 +183,10 @@ const EventDetailsScreen = ({ route, navigation }) => {
           </View>
         </View>
         {organizer && (
-          <View style={styles.authorContainer}>
+          <TouchableOpacity style={styles.authorContainer} onPress={() => navigation.navigate('UserProfile', { userId: event.organizer })}>
             <MaterialCommunityIcons name="account-supervisor-circle" size={24} color="#06038D" />
             <Text style={styles.authorName}>{organizer.name} {organizer.lastName}</Text>
-          </View>
+          </TouchableOpacity>
         )}
         <Text style={styles.date}>{new Date(event.date).toLocaleDateString()} at {new Date(event.time).toLocaleTimeString()}</Text>
         <Text style={styles.location}>Location: {event.location}</Text>
@@ -221,13 +252,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#06038D',
   },
+  actionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   likeButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 10,
   },
   likeCount: {
     fontSize: 16,
     marginLeft: 5,
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   tagsContainer: {
     flexDirection: 'row',

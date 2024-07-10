@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Modal, FlatList } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { auth, db } from '../firebase/firebaseconfig';
+import { auth, db } from '../../firebase/firebaseconfig';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 
@@ -30,6 +30,10 @@ const ProfileScreen = ({ navigation }) => {
     };
     fetchUserData();
   }, [userId]);
+
+  const calculateTotalHours = () => {
+    return userData.history?.reduce((total, event) => total + (event.hours || 0), 0) || 0;
+  };
 
   const handleUpdate = async () => {
     setUpdating(true);
@@ -73,7 +77,8 @@ const ProfileScreen = ({ navigation }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <MaterialCommunityIcons name="account" size={220} color="#06038D" style={styles.userIcon} />
+      <MaterialCommunityIcons name="account" size={260} color="#06038D" style={styles.userIcon} />
+      <Text style={styles.hoursText}>Total Hours Volunteered: {calculateTotalHours()}</Text>
       <View style={styles.followBox}>
         <TouchableOpacity style={styles.followBoxItem} onPress={() => setIsFollowersModalVisible(true)}>
           <Text style={styles.followBoxText}>Followers</Text>
@@ -85,6 +90,18 @@ const ProfileScreen = ({ navigation }) => {
           <Text style={styles.followBoxCount}>{userData.following?.length || 0}</Text>
         </TouchableOpacity>
       </View>
+      <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('UserPosts')}>
+        <Text style={styles.rowText}>My Posts</Text>
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#06038D" />
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('VolunteerHistory')}>
+        <Text style={styles.rowText}>Volunteer History</Text>
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#06038D" />
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('ManageEventSignups')}>
+        <Text style={styles.rowText}>Manage Event Signups</Text>
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#06038D" />
+      </TouchableOpacity>
       {isEditMode ? (
         <>
           <Text style={styles.label}>First Name</Text>
@@ -210,12 +227,18 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   userIcon: {
-    marginBottom: 0,
+    marginBottom: 10,
+  },
+  hoursText: {
+    fontSize: 18,
+    color: '#06038D',
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
   followBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#06038D',
@@ -254,7 +277,7 @@ const styles = StyleSheet.create({
     borderColor: '#06038D',
     borderWidth: 1,
     borderRadius: 10,
-    marginBottom: 15,
+    marginBottom: 10,
     backgroundColor: '#fff',
     fontSize: 16,
   },
@@ -295,6 +318,20 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    marginVertical: 5,
+  },
+  rowText: {
+    fontSize: 16,
+    color: '#06038D',
   },
   modalContainer: {
     flex: 1,

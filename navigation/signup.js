@@ -52,6 +52,7 @@ const SignupScreen = () => {
           profession: userType === 'volunteer' ? profession : null,
           followers: [],
           following: [],
+          history: [],
           createdAt: new Date(),
         });
 

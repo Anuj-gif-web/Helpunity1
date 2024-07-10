@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, FlatList, Image } from 'react-native';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, auth } from '../firebase/firebaseconfig';
-import { collection, addDoc } from 'firebase/firestore';
+import { db, auth } from '../../firebase/firebaseconfig';
+import { collection, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 const categories = [
   "Environment", "Education", "Health", "Community", "Animal Welfare",
@@ -15,19 +15,34 @@ const categories = [
 ];
 
 const AddEventScreen = () => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [date, setDate] = useState(null);
-  const [time, setTime] = useState(null);
-  const [location, setLocation] = useState('');
-  const [category, setCategory] = useState('');
-  const [coverPhoto, setCoverPhoto] = useState(null);
-  const [imageUrl, setImageUrl] = useState('');
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { event, isEdit } = route.params || {};
+  const [title, setTitle] = useState(event?.title || '');
+  const [description, setDescription] = useState(event?.description || '');
+  const [date, setDate] = useState(event ? new Date(event.date) : null);
+  const [time, setTime] = useState(event ? new Date(event.time) : null);
+  const [location, setLocation] = useState(event?.location || '');
+  const [category, setCategory] = useState(event?.category || '');
+  const [coverPhoto, setCoverPhoto] = useState(event?.coverPhoto || null);
+  const [imageUrl, setImageUrl] = useState(event?.coverPhoto || '');
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [isTimePickerVisible, setTimePickerVisibility] = useState(false);
-  const navigation = useNavigation();
 
   const storage = getStorage();
+
+  useEffect(() => {
+    if (event) {
+      setTitle(event.title);
+      setDescription(event.description);
+      setDate(new Date(event.date));
+      setTime(new Date(event.time));
+      setLocation(event.location);
+      setCategory(event.category);
+      setCoverPhoto(event.coverPhoto);
+      setImageUrl(event.coverPhoto);
+    }
+  }, [event]);
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -63,7 +78,7 @@ const AddEventScreen = () => {
     }
   };
 
-  const handleAddEvent = async () => {
+  const handleSaveEvent = async () => {
     if (!title || !description || !date || !time || !location || !category || !imageUrl) {
       Alert.alert('Error', 'All fields are required.');
       return;
@@ -71,23 +86,40 @@ const AddEventScreen = () => {
 
     try {
       const user = auth.currentUser;
-      const docRef = await addDoc(collection(db, 'events'), {
-        title,
-        description,
-        date: date.toISOString(),
-        time: time.toISOString(),
-        location,
-        category,
-        coverPhoto: imageUrl,
-        organizer: user.uid,
-        participants: [],
-        likes: 0,
-        likedBy: {}
-      });
 
-      navigation.goBack();
+      if (isEdit && event?.id) {
+        await updateDoc(doc(db, 'events', event.id), {
+          title,
+          description,
+          date: date.toISOString(),
+          time: time.toISOString(),
+          location,
+          category,
+          coverPhoto: imageUrl,
+        });
+        Alert.alert('Success', 'Event updated successfully!', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      } else {
+        await addDoc(collection(db, 'events'), {
+          title,
+          description,
+          date: date.toISOString(),
+          time: time.toISOString(),
+          location,
+          category,
+          coverPhoto: imageUrl,
+          organizer: user.uid,
+          participants: [],
+          likes: 0,
+          likedBy: {}
+        });
+        Alert.alert('Success', 'Event added successfully!', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      }
     } catch (error) {
-      Alert.alert('Error', 'Error adding event: ' + error.message);
+      Alert.alert('Error', 'Error saving event: ' + error.message);
     }
   };
 
@@ -191,8 +223,8 @@ const AddEventScreen = () => {
           <Text style={styles.imageText}>Pick an image</Text>
         )}
       </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={handleAddEvent}>
-        <Text style={styles.buttonText}>Add Event</Text>
+      <TouchableOpacity style={styles.button} onPress={handleSaveEvent}>
+        <Text style={styles.buttonText}>{isEdit ? "Update Event" : "Add Event"}</Text>
       </TouchableOpacity>
     </KeyboardAwareScrollView>
   );

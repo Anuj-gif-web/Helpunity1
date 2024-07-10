@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, Image, ActivityIndicator, Modal, SectionList, StyleSheet, Share } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { db, auth } from '../firebase/firebaseconfig';
+import { db, auth } from '../../firebase/firebaseconfig';
 import { collection, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import Checkbox from 'expo-checkbox';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
