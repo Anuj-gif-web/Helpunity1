@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, Image, ActivityIndicator, Modal, SectionList, StyleSheet, Share } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, FlatList, TouchableOpacity, Image, ActivityIndicator, Modal, StyleSheet, Share, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { db, auth } from '../../firebase/firebaseconfig';
 import { collection, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import Checkbox from 'expo-checkbox';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 
 const categories = [
   "Environment", "Education", "Health", "Community", "Sports",
   "Arts & Culture", "Animals", "Emergency Response", "Technology",
   "Science", "Other"
 ];
+
+const predefinedLocations = ["East Lansing, MI", "Ann Arbor, MI", "Detroit, MI", "Grand Rapids, MI"];
 
 const ExploreScreen = ({ navigation }) => {
   const [events, setEvents] = useState([]);
@@ -23,6 +26,8 @@ const ExploreScreen = ({ navigation }) => {
   const [location, setLocation] = useState('');
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
+
+  const locationInputRef = useRef();
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -206,6 +211,19 @@ const ExploreScreen = ({ navigation }) => {
     );
   };
 
+  const clearFilters = () => {
+    setSelectedCategories([]);
+    setLocation('');
+    setSelectedDate(null);
+    if (locationInputRef.current) {
+      locationInputRef.current.clear();
+    }
+  };
+
+  const handlePredefinedLocationPress = (loc) => {
+    setLocation(prevLocation => (prevLocation === loc ? '' : loc));
+  };
+
   if (loading) {
     return <ActivityIndicator size="large" color="#06038D" />;
   }
@@ -237,12 +255,12 @@ const ExploreScreen = ({ navigation }) => {
         transparent
         animationType="slide"
       >
-        <View style={styles.modalContainer}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filters</Text>
               <View style={styles.clearContainer}>
-                <TouchableOpacity onPress={() => { setSelectedCategories([]); setLocation(''); setSelectedDate(null); }} style={styles.clearButton}>
+                <TouchableOpacity onPress={clearFilters} style={styles.clearButton}>
                   <Text style={styles.clearButtonText}>Clear Filters</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setIsModalVisible(false)} style={styles.closeButton}>
@@ -250,47 +268,93 @@ const ExploreScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
             </View>
-            <Text style={styles.filterLabel}>Location</Text>
-            <TextInput
-              style={styles.input}
-              value={location}
-              onChangeText={setLocation}
-              placeholder="Enter location"
-            />
-            <Text style={styles.filterLabel}>Date</Text>
-            <TouchableOpacity onPress={showDatePicker} style={styles.input}>
-              <Text>{selectedDate ? selectedDate.toDateString() : "Select Date"}</Text>
-            </TouchableOpacity>
-            <DateTimePickerModal
-              isVisible={isDatePickerVisible}
-              mode="date"
-              onConfirm={handleConfirmDate}
-              onCancel={hideDatePicker}
-            />
-            <Text style={styles.filterLabel}>Categories</Text>
-            <SectionList
-              sections={[
-                { title: 'Categories', data: categories },
-              ]}
-              renderItem={({ item }) => (
+            <FlatList
+              ListHeaderComponent={
+                <>
+                  <Text style={styles.filterLabel}>Location</Text>
+                  <View style={{ marginBottom: 10 }}>
+                    <GooglePlacesAutocomplete
+                      ref={locationInputRef}
+                      placeholder='Search for a location'
+                      onPress={(data, details = null) => {
+                        setLocation(data.description);
+                      }}
+                      query={{
+                        key: 'AIzaSyChZuO8bU5yIndByodLwETLKFXKS4kJmSA',
+                        language: 'en',
+                      }}
+                      styles={{
+                        textInputContainer: {
+                          backgroundColor: 'white',
+                          paddingHorizontal: 0,
+                        },
+                        textInput: {
+                          height: 38,
+                          color: '#5d5d5d',
+                          fontSize: 16,
+                          paddingLeft: 10,
+                        },
+                        predefinedPlacesDescription: {
+                          color: '#1faadb',
+                        },
+                      }}
+                      textInputProps={{
+                        style: { height: 38, color: '#5d5d5d', fontSize: 16 },
+                        onFocus: () => setIsModalVisible(true),
+                      }}
+                      enablePoweredByContainer={false}
+                    />
+                  </View>
+                  <View style={styles.locationTagsContainer}>
+                    {predefinedLocations.map((loc, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.locationTag,
+                          location === loc && styles.selectedLocationTag
+                        ]}
+                        onPress={() => handlePredefinedLocationPress(loc)}
+                      >
+                        <Text style={[
+                          styles.locationTagText,
+                          location === loc && styles.selectedLocationTagText
+                        ]}>{loc}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <Text style={styles.filterLabel}>Date</Text>
+                  <TouchableOpacity onPress={showDatePicker} style={styles.input}>
+                    <Text>{selectedDate ? selectedDate.toDateString() : "Select Date"}</Text>
+                  </TouchableOpacity>
+                  <DateTimePickerModal
+                    isVisible={isDatePickerVisible}
+                    mode="date"
+                    onConfirm={handleConfirmDate}
+                    onCancel={hideDatePicker}
+                  />
+                  <Text style={styles.filterLabel}>Categories</Text>
+                </>
+              }
+              data={categories}
+              renderItem={({ item: category }) => (
                 <View style={styles.checkboxContainer}>
                   <Checkbox
-                    value={selectedCategories.includes(item)}
-                    onValueChange={() => toggleCategorySelection(item)}
-                    color={selectedCategories.includes(item) ? '#06038D' : undefined}
+                    value={selectedCategories.includes(category)}
+                    onValueChange={() => toggleCategorySelection(category)}
+                    color={selectedCategories.includes(category) ? '#06038D' : undefined}
                     style={styles.checkbox}
                   />
-                  <Text style={styles.checkboxLabel}>{item}</Text>
+                  <Text style={styles.checkboxLabel}>{category}</Text>
                 </View>
               )}
-              keyExtractor={(item, index) => item + index}
-              contentContainerStyle={styles.checkboxScrollView}
+              keyExtractor={(item) => item}
+              ListFooterComponent={<View style={{ height: 200 }} />}
             />
             <TouchableOpacity onPress={() => setIsModalVisible(false)} style={styles.applyButton}>
               <Text style={styles.applyButtonText}>Apply Filters</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -414,11 +478,6 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 10,
   },
-  postDescriptionContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   postDescription: {
     fontSize: 16,
     color: '#333',
@@ -457,6 +516,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderColor: '#06038D',
     borderWidth: 2,
+    maxHeight: '70%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -491,10 +551,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginVertical: 10,
   },
-  checkboxScrollView: {
-    maxHeight: 200,
-    marginBottom: 15,
-  },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -522,6 +578,29 @@ const styles = StyleSheet.create({
   applyButtonText: {
     color: '#fff',
     fontSize: 16,
+  },
+  locationTagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 10,
+  },
+  locationTag: {
+    borderColor: '#06038D',
+    borderWidth: 1,
+    borderRadius: 15,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    marginRight: 5,
+    marginBottom: 5,
+  },
+  selectedLocationTag: {
+    backgroundColor: '#06038D',
+  },
+  locationTagText: {
+    color: '#06038D',
+  },
+  selectedLocationTagText: {
+    color: '#fff',
   },
 });
 

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, FlatList, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, FlatList } from 'react-native';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth } from '../../firebase/firebaseconfig';
-import { collection, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 
 const categories = [
   "Environment", "Education", "Health", "Community", "Animal Welfare",
@@ -149,84 +149,154 @@ const AddEventScreen = () => {
     hideTimePicker();
   };
 
-  return (
-    <KeyboardAwareScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.label}>Title</Text>
-      <TextInput
-        style={styles.input}
-        value={title}
-        onChangeText={setTitle}
-        placeholder="Enter event title"
-      />
-      <Text style={styles.label}>Description</Text>
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        value={description}
-        onChangeText={setDescription}
-        multiline
-        placeholder="Enter event description"
-      />
-      <Text style={styles.label}>Date</Text>
-      <TouchableOpacity onPress={showDatePicker} style={styles.input}>
-        <Text>{date ? date.toDateString() : "Select Date"}</Text>
-      </TouchableOpacity>
-      <DateTimePickerModal
-        isVisible={isDatePickerVisible}
-        mode="date"
-        onConfirm={handleConfirmDate}
-        onCancel={hideDatePicker}
-      />
-      <Text style={styles.label}>Time</Text>
-      <TouchableOpacity onPress={showTimePicker} style={styles.input}>
-        <Text>{time ? time.toLocaleTimeString() : "Select Time"}</Text>
-      </TouchableOpacity>
-      <DateTimePickerModal
-        isVisible={isTimePickerVisible}
-        mode="time"
-        onConfirm={handleConfirmTime}
-        onCancel={hideTimePicker}
-      />
-      <Text style={styles.label}>Location</Text>
-      <TextInput
-        style={styles.input}
-        value={location}
-        onChangeText={setLocation}
-        placeholder="Enter event location"
-      />
-      <Text style={styles.label}>Category</Text>
-      <View style={styles.categoriesContainer}>
-        {categories.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[
-              styles.categoryItem,
-              category === item && styles.categoryItemSelected
-            ]}
-            onPress={() => setCategory(item)}
-          >
-            <Text
-              style={[
-                styles.categoryText,
-                category === item && styles.categoryTextSelected
-              ]}
-            >
-              {item}
-            </Text>
+  const renderItem = ({ item }) => {
+    switch (item.key) {
+      case 'title':
+        return (
+          <View>
+            <Text style={styles.label}>Title</Text>
+            <TextInput
+              style={styles.input}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Enter event title"
+            />
+          </View>
+        );
+      case 'description':
+        return (
+          <View>
+            <Text style={styles.label}>Description</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              placeholder="Enter event description"
+            />
+          </View>
+        );
+      case 'date':
+        return (
+          <View>
+            <Text style={styles.label}>Date</Text>
+            <TouchableOpacity onPress={showDatePicker} style={styles.input}>
+              <Text>{date ? date.toDateString() : "Select Date"}</Text>
+            </TouchableOpacity>
+            <DateTimePickerModal
+              isVisible={isDatePickerVisible}
+              mode="date"
+              onConfirm={handleConfirmDate}
+              onCancel={hideDatePicker}
+            />
+          </View>
+        );
+      case 'time':
+        return (
+          <View>
+            <Text style={styles.label}>Time</Text>
+            <TouchableOpacity onPress={showTimePicker} style={styles.input}>
+              <Text>{time ? time.toLocaleTimeString() : "Select Time"}</Text>
+            </TouchableOpacity>
+            <DateTimePickerModal
+              isVisible={isTimePickerVisible}
+              mode="time"
+              onConfirm={handleConfirmTime}
+              onCancel={hideTimePicker}
+            />
+          </View>
+        );
+      case 'location':
+        return (
+          <View>
+            <Text style={styles.label}>Location</Text>
+            <GooglePlacesAutocomplete
+              placeholder='Enter event location'
+              onPress={(data, details = null) => {
+                console.log('Selected data: ', data);
+                setLocation(data.description);
+              }}
+              query={{
+                key: 'AIzaSyChZuO8bU5yIndByodLwETLKFXKS4kJmSA',
+                language: 'en',
+              }}
+              onFail={(error) => console.log('Google Places API error: ', error)}
+              onNotFound={() => console.log('No places found')}
+              styles={{
+                textInput: styles.input,
+              }}
+            />
+          </View>
+        );
+      case 'category':
+        return (
+          <View>
+            <Text style={styles.label}>Category</Text>
+            <View style={styles.categoriesContainer}>
+              {categories.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.categoryItem,
+                    category === item && styles.categoryItemSelected
+                  ]}
+                  onPress={() => setCategory(item)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      category === item && styles.categoryTextSelected
+                    ]}
+                  >
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        );
+      case 'coverPhoto':
+        return (
+          <View>
+            <Text style={styles.label}>Cover Photo</Text>
+            <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
+              {coverPhoto ? (
+                <Image source={{ uri: coverPhoto }} style={styles.image} />
+              ) : (
+                <Text style={styles.imageText}>Pick an image</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        );
+      case 'button':
+        return (
+          <TouchableOpacity style={styles.button} onPress={handleSaveEvent}>
+            <Text style={styles.buttonText}>{isEdit ? "Update Event" : "Add Event"}</Text>
           </TouchableOpacity>
-        ))}
-      </View>
-      <Text style={styles.label}>Cover Photo</Text>
-      <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-        {coverPhoto ? (
-          <Image source={{ uri: coverPhoto }} style={styles.image} />
-        ) : (
-          <Text style={styles.imageText}>Pick an image</Text>
-        )}
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={handleSaveEvent}>
-        <Text style={styles.buttonText}>{isEdit ? "Update Event" : "Add Event"}</Text>
-      </TouchableOpacity>
-    </KeyboardAwareScrollView>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const formElements = [
+    { key: 'title' },
+    { key: 'description' },
+    { key: 'date' },
+    { key: 'time' },
+    { key: 'location' },
+    { key: 'category' },
+    { key: 'coverPhoto' },
+    { key: 'button' },
+  ];
+
+  return (
+    <FlatList
+      data={formElements}
+      renderItem={renderItem}
+      keyExtractor={item => item.key}
+      contentContainerStyle={styles.container}
+    />
   );
 };
 

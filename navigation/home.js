@@ -17,17 +17,21 @@ const HomeScreen = ({ navigation }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        if (!userId) {
+          setLoading(false);
+          return;
+        }
+
         const userDoc = await getDoc(doc(db, 'users', userId));
-        const following = userDoc.exists() ? userDoc.data().following || [] : [];
+        if (!userDoc.exists()) {
+          setLoading(false);
+          return;
+        }
 
-        const eventsQuery = following.length > 0 
-          ? query(collection(db, 'events'), where('organizer', 'in', following)) 
-          : collection(db, 'events');
+        const following = userDoc.data().following || [];
 
-        const fundraiseQuery = following.length > 0 
-          ? query(collection(db, 'fundraisePosts'), where('userId', 'in', following)) 
-          : collection(db, 'fundraisePosts');
-
+        const eventsQuery = query(collection(db, 'events'), where('organizer', 'in', following.length > 0 ? following : ['']));
+        const fundraiseQuery = query(collection(db, 'fundraisePosts'), where('userId', 'in', following.length > 0 ? following : ['']));
         const usersQuery = query(collection(db, 'users'), where('uid', 'not-in', following.concat(userId)));
 
         const [eventsSnap, fundraiseSnap, usersSnap] = await Promise.all([
@@ -56,9 +60,7 @@ const HomeScreen = ({ navigation }) => {
       }
     };
 
-    if (userId) {
-      fetchData();
-    }
+    fetchData();
   }, [userId]);
 
   const handleShare = async (id, type) => {
@@ -149,13 +151,16 @@ const HomeScreen = ({ navigation }) => {
   );
 
   const renderFollowerItem = ({ item }) => (
-    <View style={styles.followerCard}>
-      <Image source={{ uri: item.profilePhoto || 'https://via.placeholder.com/150' }} style={styles.followerImage} />
+    <TouchableOpacity
+      style={styles.followerCard}
+      onPress={() => navigation.navigate('UserProfile', { userId: item.id })}
+    >
+      <MaterialCommunityIcons name="account-circle" size={100} color="#06038D" style={styles.followerIcon} />
       <Text style={styles.followerName}>{item.name} {item.lastName}</Text>
       <TouchableOpacity style={styles.followButton} onPress={() => handleFollow(item.id)}>
         <Text style={styles.followButtonText}>Follow</Text>
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 
   if (loading) {
@@ -164,37 +169,44 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <ScrollView style={styles.container}>
-      <LinearGradient colors={['#06038D', '#fff']} style={styles.header}>
+      <LinearGradient
+        colors={['#0000FF', '#00FFFF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
         <Text style={styles.headerText}>Welcome to HelpUnity!</Text>
         <Text style={styles.headerSubText}>Be kind for no reason</Text>
       </LinearGradient>
-      <Text style={styles.sectionTitle}>Featured Events</Text>
-      <FlatList
-        data={events}
-        renderItem={renderEventItem}
-        keyExtractor={(item) => item.id}
-        horizontal
-        showsHorizontalScrollIndicator={true}
-        contentContainerStyle={styles.listContainer}
-      />
-      <Text style={styles.sectionTitle}>Fundraise Posts</Text>
-      <FlatList
-        data={fundraisePosts}
-        renderItem={renderFundraiseItem}
-        keyExtractor={(item) => item.id}
-        horizontal
-        showsHorizontalScrollIndicator={true}
-        contentContainerStyle={styles.listContainer}
-      />
-      <Text style={styles.sectionTitle}>Suggested Followers</Text>
-      <FlatList
-        data={suggestedFollowers}
-        renderItem={renderFollowerItem}
-        keyExtractor={(item) => item.id}
-        horizontal
-        showsHorizontalScrollIndicator={true}
-        contentContainerStyle={styles.listContainer}
-      />
+      <View style={styles.whiteBackground}>
+        <Text style={styles.sectionTitle}>Featured Events</Text>
+        <FlatList
+          data={events}
+          renderItem={renderEventItem}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={true}
+          contentContainerStyle={styles.listContainer}
+        />
+        <Text style={styles.sectionTitle}>Fundraise Posts</Text>
+        <FlatList
+          data={fundraisePosts}
+          renderItem={renderFundraiseItem}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={true}
+          contentContainerStyle={styles.listContainer}
+        />
+        <Text style={styles.sectionTitle}>Suggested Followers</Text>
+        <FlatList
+          data={suggestedFollowers}
+          renderItem={renderFollowerItem}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={true}
+          contentContainerStyle={styles.listContainer}
+        />
+      </View>
     </ScrollView>
   );
 };
@@ -208,7 +220,6 @@ const styles = StyleSheet.create({
     padding: 20,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
-    marginBottom: 20,
   },
   headerText: {
     fontSize: 28,
@@ -221,6 +232,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     textAlign: 'center',
+  },
+  whiteBackground: {
+    backgroundColor: '#fff',
+    paddingTop: 20,
   },
   sectionTitle: {
     fontSize: 24,
@@ -315,10 +330,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     alignItems: 'center',
   },
-  followerImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  followerIcon: {
     marginBottom: 10,
   },
   followerName: {

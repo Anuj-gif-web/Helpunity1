@@ -59,17 +59,108 @@ const ProfileScreen = ({ navigation }) => {
       });
   };
 
-  const renderFollowers = ({ item }) => (
-    <View style={styles.followerItem}>
-      <Text>{item}</Text>
-    </View>
-  );
+  const handleUnfollow = async (followedUserId) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        following: userData.following.filter(id => id !== followedUserId)
+      });
+      setUserData(prev => ({
+        ...prev,
+        following: prev.following.filter(id => id !== followedUserId)
+      }));
+    } catch (error) {
+      console.error("Error unfollowing user: ", error);
+    }
+  };
 
-  const renderFollowing = ({ item }) => (
-    <View style={styles.followerItem}>
-      <Text>{item}</Text>
-    </View>
-  );
+  const handleFollow = async (userToFollowId) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        following: [...userData.following, userToFollowId]
+      });
+      setUserData(prev => ({
+        ...prev,
+        following: [...prev.following, userToFollowId]
+      }));
+    } catch (error) {
+      console.error("Error following user: ", error);
+    }
+  };
+
+  const fetchUserDetails = async (userIds) => {
+    const userDetails = await Promise.all(userIds.map(async (id) => {
+      const userDoc = await getDoc(doc(db, 'users', id));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        return { id, ...data };
+      }
+      return null;
+    }));
+    return userDetails.filter(user => user !== null);
+  };
+
+  const renderFollowerOrFollowing = ({ item }) => {
+    const isFollowing = userData.following.includes(item.id);
+    return (
+      <View style={styles.followerItem}>
+        <TouchableOpacity
+          style={styles.userInfo}
+          onPress={() => {
+            setIsFollowersModalVisible(false);
+            setIsFollowingModalVisible(false);
+            navigation.navigate('UserProfile', { userId: item.id });
+          }}
+        >
+          <MaterialCommunityIcons name="account-circle" size={40} color="#06038D" />
+          <Text style={styles.followerName}>{item.name} {item.lastName}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={isFollowing ? styles.unfollowButton : styles.followButton}
+          onPress={() => {
+            isFollowing ? handleUnfollow(item.id) : handleFollow(item.id)
+          }}
+        >
+          <Text style={styles.followButtonText}>{isFollowing ? 'Unfollow' : 'Follow'}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const showFollowersModal = async () => {
+    if (userData.followers?.length) {
+      const followersDetails = await fetchUserDetails(userData.followers);
+      setUserData(prev => ({ ...prev, followersDetails }));
+    }
+    setIsFollowersModalVisible(true);
+  };
+
+  const showFollowingModal = async () => {
+    if (userData.following?.length) {
+      const followingDetails = await fetchUserDetails(userData.following);
+      setUserData(prev => ({ ...prev, followingDetails }));
+    }
+    setIsFollowingModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsFollowersModalVisible(false);
+    setIsFollowingModalVisible(false);
+  };
+
+  useEffect(() => {
+    if (!isFollowersModalVisible) {
+      setUserData(prev => ({
+        ...prev,
+        followersDetails: prev.followersDetails?.filter(user => userData.following.includes(user.id))
+      }));
+    }
+    if (!isFollowingModalVisible) {
+      setUserData(prev => ({
+        ...prev,
+        followingDetails: prev.followingDetails?.filter(user => userData.following.includes(user.id))
+      }));
+    }
+  }, [isFollowersModalVisible, isFollowingModalVisible]);
 
   if (loading) {
     return <ActivityIndicator size="large" color="#06038D" />;
@@ -80,12 +171,12 @@ const ProfileScreen = ({ navigation }) => {
       <MaterialCommunityIcons name="account" size={260} color="#06038D" style={styles.userIcon} />
       <Text style={styles.hoursText}>Total Hours Volunteered: {calculateTotalHours()}</Text>
       <View style={styles.followBox}>
-        <TouchableOpacity style={styles.followBoxItem} onPress={() => setIsFollowersModalVisible(true)}>
+        <TouchableOpacity style={styles.followBoxItem} onPress={showFollowersModal}>
           <Text style={styles.followBoxText}>Followers</Text>
           <Text style={styles.followBoxCount}>{userData.followers?.length || 0}</Text>
         </TouchableOpacity>
         <View style={styles.separator} />
-        <TouchableOpacity style={styles.followBoxItem} onPress={() => setIsFollowingModalVisible(true)}>
+        <TouchableOpacity style={styles.followBoxItem} onPress={showFollowingModal}>
           <Text style={styles.followBoxText}>Following</Text>
           <Text style={styles.followBoxCount}>{userData.following?.length || 0}</Text>
         </TouchableOpacity>
@@ -170,19 +261,20 @@ const ProfileScreen = ({ navigation }) => {
         visible={isFollowersModalVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => setIsFollowersModalVisible(false)}
+        onRequestClose={handleCloseModal}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <TouchableOpacity onPress={() => setIsFollowersModalVisible(false)} style={styles.closeButton}>
+            <TouchableOpacity onPress={handleCloseModal} style={styles.closeButton}>
               <MaterialCommunityIcons name="close" size={24} color="#06038D" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Followers</Text>
-            {userData.followers?.length ? (
+            {userData.followersDetails?.length ? (
               <FlatList
-                data={userData.followers}
-                renderItem={renderFollowers}
-                keyExtractor={(item, index) => index.toString()}
+                data={userData.followersDetails}
+                renderItem={renderFollowerOrFollowing}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={{ paddingBottom: 20 }}
               />
             ) : (
               <Text style={styles.noDataText}>No followers yet</Text>
@@ -194,19 +286,20 @@ const ProfileScreen = ({ navigation }) => {
         visible={isFollowingModalVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => setIsFollowingModalVisible(false)}
+        onRequestClose={handleCloseModal}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <TouchableOpacity onPress={() => setIsFollowingModalVisible(false)} style={styles.closeButton}>
+            <TouchableOpacity onPress={handleCloseModal} style={styles.closeButton}>
               <MaterialCommunityIcons name="close" size={24} color="#06038D" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Following</Text>
-            {userData.following?.length ? (
+            {userData.followingDetails?.length ? (
               <FlatList
-                data={userData.following}
-                renderItem={renderFollowing}
-                keyExtractor={(item, index) => index.toString()}
+                data={userData.followingDetails}
+                renderItem={renderFollowerOrFollowing}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={{ paddingBottom: 20 }}
               />
             ) : (
               <Text style={styles.noDataText}>Not following anyone yet</Text>
@@ -363,9 +456,38 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   followerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
+    width: '100%',
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  followerName: {
+    fontSize: 16,
+    color: '#06038D',
+    marginLeft: 10,
+  },
+  followButton: {
+    backgroundColor: '#06038D',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+  },
+  unfollowButton: {
+    backgroundColor: '#FF3B30',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+  },
+  followButtonText: {
+    color: '#fff',
+    fontSize: 14,
   },
 });
 

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, Animated } from 'react-native';
+import { View, Text, Image, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const SplashScreen = () => {
-  const [fadeAnim] = useState(new Animated.Value(0)); // Initial value for opacity 0
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const navigation = useNavigation();
 
   useEffect(() => {
     setTimeout(() => {
@@ -14,16 +16,20 @@ const SplashScreen = () => {
           useNativeDriver: true,
         }
       ).start();
-    }, 1000); // Start the animation 1 second after mount
-  }, []);
+    }, 1000);
+  }, [fadeAnim]);
+
+  // const handlePress = () => {
+  //   navigation.navigate('HomeTabs', { screen: 'Home' });
+  // };
 
   return (
-    <View style={styles.container}>
+    <TouchableOpacity style={styles.container} >
       <Image source={require('../assets/Helpunitylogo.jpg')} style={styles.logo} />
       <Animated.Text style={[styles.text, { opacity: fadeAnim }]}>
         HelpUnity
       </Animated.Text>
-    </View>
+    </TouchableOpacity>
   );
 };
 
