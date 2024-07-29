@@ -7,8 +7,10 @@ import { doc, setDoc } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SegmentControl from '@react-native-segmented-control/segmented-control';
 import RNPickerSelect from 'react-native-picker-select';
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 const professions = [
+  { label: 'Student', value: 'Student' },
   { label: 'Engineer', value: 'Engineer' },
   { label: 'Doctor', value: 'Doctor' },
   { label: 'Teacher', value: 'Teacher' },
@@ -17,20 +19,15 @@ const professions = [
   { label: 'Consultant', value: 'Consultant' },
   { label: 'Freelancer', value: 'Freelancer' },
   { label: 'Scientist', value: 'Scientist' },
-  { label: 'Student', value: 'Student' },
   { label: 'Other', value: 'Other' },
 ];
-
-const ageOptions = Array.from({ length: 83 }, (_, i) => ({
-  label: `${i + 18}`,
-  value: `${i + 18}`
-}));
 
 const SignupScreen = () => {
   const [userType, setUserType] = useState('volunteer');
   const [name, setName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [age, setAge] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [profession, setProfession] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -48,7 +45,7 @@ const SignupScreen = () => {
           userType,
           name,
           lastName: userType === 'volunteer' ? lastName : null,
-          age: userType === 'volunteer' ? age : null,
+          birthDate: userType === 'volunteer' ? birthDate : null,
           profession: userType === 'volunteer' ? profession : null,
           followers: [],
           following: [],
@@ -71,6 +68,19 @@ const SignupScreen = () => {
       .catch((error) => {
         Alert.alert("Signup failed", error.message);
       });
+  };
+
+  const showDatePicker = () => {
+    setDatePickerVisibility(true);
+  };
+
+  const hideDatePicker = () => {
+    setDatePickerVisibility(false);
+  };
+
+  const handleConfirm = (date) => {
+    setBirthDate(date.toDateString());
+    hideDatePicker();
   };
 
   return (
@@ -106,19 +116,18 @@ const SignupScreen = () => {
             onChangeText={setLastName}
             autoCapitalize="words"
           />
-          <View style={styles.pickerWrapper}>
-            <RNPickerSelect
-              onValueChange={(value) => setAge(value)}
-              items={ageOptions}
-              style={pickerSelectStyles}
-              placeholder={{
-                label: 'Select Age',
-                value: null,
-                color: '#06038D',
-              }}
-              value={age}
-            />
-          </View>
+          <TouchableOpacity style={styles.datePickerButton} onPress={showDatePicker}>
+            <Text style={styles.datePickerText}>
+              {birthDate ? birthDate : "Date of Birth"}
+            </Text>
+          </TouchableOpacity>
+          <DateTimePickerModal
+            isVisible={isDatePickerVisible}
+            mode="date"
+            onConfirm={handleConfirm}
+            onCancel={hideDatePicker}
+            maximumDate={new Date()}
+          />
           <View style={styles.pickerWrapper}>
             <RNPickerSelect
               onValueChange={(value) => setProfession(value)}
@@ -219,6 +228,21 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 10,
     justifyContent: 'center', // Ensure content is vertically centered
+  },
+  datePickerButton: {
+    width: '100%',
+    height: 40,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#06038D',
+    borderRadius: 5,
+    marginBottom: 10,
+    justifyContent: 'center',
+  },
+  datePickerText: {
+    color: '#06038D',
+    textAlign: 'left',
+    paddingLeft: 15,
   },
   button: {
     backgroundColor: '#06038D',

@@ -1,15 +1,29 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< Updated upstream:navigation/FundraisePostDetailsScreen.js
 import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, Share } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ProgressBar } from 'react-native-paper';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase/firebaseconfig';
+=======
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, Share, ActivityIndicator, Alert } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ProgressBar } from 'react-native-paper';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { db, auth } from '../../firebase/firebaseconfig';
+import { useStripe } from '@stripe/stripe-react-native';
+>>>>>>> Stashed changes:navigation/fundraise/FundraisePostDetailsScreen.js
 
 const FundraisePostDetailsScreen = ({ route, navigation }) => {
   const { post } = route.params;
   const [likes, setLikes] = useState(post.likes);
   const [userLiked, setUserLiked] = useState(post.likedBy && post.likedBy[auth.currentUser?.uid]);
   const [author, setAuthor] = useState(null);
+<<<<<<< Updated upstream:navigation/FundraisePostDetailsScreen.js
+=======
+  const [loading, setLoading] = useState(true);
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+>>>>>>> Stashed changes:navigation/fundraise/FundraisePostDetailsScreen.js
 
   useEffect(() => {
     const fetchAuthor = async () => {
@@ -66,6 +80,77 @@ const FundraisePostDetailsScreen = ({ route, navigation }) => {
     }
   };
 
+<<<<<<< Updated upstream:navigation/FundraisePostDetailsScreen.js
+=======
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `Check out this fundraise post: https://example.com/posts/${postId}`,
+      });
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  const handleEdit = () => {
+    navigation.navigate('AddFundraisePost', { post, isEdit: true });
+  };
+
+  const initializePaymentSheet = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/create-payment-intent', { // Replace with your server URL
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: post.goal * 100, // Convert to smallest currency unit
+          organizerAccountId: post.organizerStripeAccountId, // Use the organizer's Stripe account ID
+        }),
+      });
+
+      const { clientSecret } = await response.json();
+
+      const { error } = await initPaymentSheet({
+        paymentIntentClientSecret: clientSecret,
+        merchantDisplayName: 'Fundraising App',
+      });
+
+      if (!error) {
+        const { error } = await presentPaymentSheet();
+        if (error) {
+          Alert.alert(`Error: ${error.message}`);
+        } else {
+          Alert.alert('Success', 'Your donation is successful');
+          // Update the fundraiser's current amount in Firestore
+          await updateDoc(doc(db, 'fundraisePosts', postId), {
+            currentAmount: post.currentAmount + post.goal,
+          });
+          setPost((prevPost) => ({
+            ...prevPost,
+            currentAmount: prevPost.currentAmount + post.goal,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert(`Error: ${error.message}`);
+    }
+  };
+
+  if (loading) {
+    return <ActivityIndicator size="large" color="#06038D" />;
+  }
+
+  if (!post) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Post not found</Text>
+      </View>
+    );
+  }
+
+>>>>>>> Stashed changes:navigation/fundraise/FundraisePostDetailsScreen.js
   const progress = post.currentAmount / post.goal;
 
   return (
@@ -110,7 +195,7 @@ const FundraisePostDetailsScreen = ({ route, navigation }) => {
           ${post.currentAmount || 0} raised of ${post.goal} goal
         </Text>
         <Text style={styles.description}>{post.description}</Text>
-        <TouchableOpacity style={styles.donateButton}>
+        <TouchableOpacity style={styles.donateButton} onPress={initializePaymentSheet}>
           <Text style={styles.donateButtonText}>Donate</Text>
         </TouchableOpacity>
       </View>
