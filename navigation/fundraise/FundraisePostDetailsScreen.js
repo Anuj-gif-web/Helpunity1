@@ -1,56 +1,45 @@
 import React, { useState, useEffect } from 'react';
-<<<<<<< Updated upstream:navigation/FundraisePostDetailsScreen.js
-import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, Share } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { ProgressBar } from 'react-native-paper';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import { db, auth } from '../firebase/firebaseconfig';
-=======
-import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, Share, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, Share, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ProgressBar } from 'react-native-paper';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase/firebaseconfig';
-import { useStripe } from '@stripe/stripe-react-native';
->>>>>>> Stashed changes:navigation/fundraise/FundraisePostDetailsScreen.js
 
 const FundraisePostDetailsScreen = ({ route, navigation }) => {
-  const { post } = route.params;
-  const [likes, setLikes] = useState(post.likes);
-  const [userLiked, setUserLiked] = useState(post.likedBy && post.likedBy[auth.currentUser?.uid]);
+  const { postId } = route.params;
+  const [post, setPost] = useState(null);
+  const [likes, setLikes] = useState(0);
+  const [userLiked, setUserLiked] = useState(false);
   const [author, setAuthor] = useState(null);
-<<<<<<< Updated upstream:navigation/FundraisePostDetailsScreen.js
-=======
   const [loading, setLoading] = useState(true);
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
->>>>>>> Stashed changes:navigation/fundraise/FundraisePostDetailsScreen.js
 
   useEffect(() => {
-    const fetchAuthor = async () => {
-      if (post.userId) {
-        try {
-          const authorDoc = await getDoc(doc(db, 'users', post.userId));
+    const fetchPost = async () => {
+      try {
+        const postDoc = await getDoc(doc(db, 'fundraisePosts', postId));
+        if (postDoc.exists()) {
+          const postData = postDoc.data();
+          setPost(postData);
+          setLikes(postData.likes || 0);
+          setUserLiked(postData.likedBy && postData.likedBy[auth.currentUser?.uid]);
+
+          const authorDoc = await getDoc(doc(db, 'users', postData.userId));
           if (authorDoc.exists()) {
             setAuthor(authorDoc.data());
           }
-        } catch (error) {
-          console.error("Error fetching author: ", error);
+        } else {
+          alert('Post not found');
+          navigation.goBack();
         }
+      } catch (error) {
+        console.error("Error fetching post: ", error);
+        alert('Error fetching post');
       }
+      setLoading(false);
     };
 
-    fetchAuthor();
-  }, [post.userId]);
-
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Check out this fundraise post: https://example.com/posts/${post.id}`,
-      });
-    } catch (error) {
-      alert(error.message);
-    }
-  };
+    fetchPost();
+  }, [postId]);
 
   const handleLike = async () => {
     if (!auth.currentUser) {
@@ -59,7 +48,7 @@ const FundraisePostDetailsScreen = ({ route, navigation }) => {
     }
 
     try {
-      const postRef = doc(db, 'fundraisePosts', post.id);
+      const postRef = doc(db, 'fundraisePosts', postId);
       if (userLiked) {
         await updateDoc(postRef, {
           likes: likes - 1,
@@ -80,8 +69,6 @@ const FundraisePostDetailsScreen = ({ route, navigation }) => {
     }
   };
 
-<<<<<<< Updated upstream:navigation/FundraisePostDetailsScreen.js
-=======
   const handleShare = async () => {
     try {
       await Share.share({
@@ -96,48 +83,6 @@ const FundraisePostDetailsScreen = ({ route, navigation }) => {
     navigation.navigate('AddFundraisePost', { post, isEdit: true });
   };
 
-  const initializePaymentSheet = async () => {
-    try {
-      const response = await fetch('http://localhost:3000/create-payment-intent', { // Replace with your server URL
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: post.goal * 100, // Convert to smallest currency unit
-          organizerAccountId: post.organizerStripeAccountId, // Use the organizer's Stripe account ID
-        }),
-      });
-
-      const { clientSecret } = await response.json();
-
-      const { error } = await initPaymentSheet({
-        paymentIntentClientSecret: clientSecret,
-        merchantDisplayName: 'Fundraising App',
-      });
-
-      if (!error) {
-        const { error } = await presentPaymentSheet();
-        if (error) {
-          Alert.alert(`Error: ${error.message}`);
-        } else {
-          Alert.alert('Success', 'Your donation is successful');
-          // Update the fundraiser's current amount in Firestore
-          await updateDoc(doc(db, 'fundraisePosts', postId), {
-            currentAmount: post.currentAmount + post.goal,
-          });
-          setPost((prevPost) => ({
-            ...prevPost,
-            currentAmount: prevPost.currentAmount + post.goal,
-          }));
-        }
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert(`Error: ${error.message}`);
-    }
-  };
-
   if (loading) {
     return <ActivityIndicator size="large" color="#06038D" />;
   }
@@ -150,7 +95,6 @@ const FundraisePostDetailsScreen = ({ route, navigation }) => {
     );
   }
 
->>>>>>> Stashed changes:navigation/fundraise/FundraisePostDetailsScreen.js
   const progress = post.currentAmount / post.goal;
 
   return (
@@ -173,20 +117,25 @@ const FundraisePostDetailsScreen = ({ route, navigation }) => {
               />
               <Text style={[styles.likeCount, userLiked && { color: 'red' }]}>{likes}</Text>
             </TouchableOpacity>
+            {auth.currentUser?.uid === post.userId && (
+              <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+                <MaterialCommunityIcons name="pencil" size={24} color="#06038D" />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
         <View style={styles.tagsContainer}>
-          {post.categories.map((category, index) => (
+          {Array.isArray(post.categories) && post.categories.map((category, index) => (
             <View key={index} style={styles.tagContainer}>
               <Text style={styles.tag}>{category}</Text>
             </View>
           ))}
         </View>
         {author && (
-          <View style={styles.authorContainer}>
+          <TouchableOpacity style={styles.authorContainer} onPress={() => navigation.navigate('UserProfile', { userId: post.userId })}>
             <MaterialCommunityIcons name="account-circle" size={24} color="#06038D" />
             <Text style={styles.authorName}>{author.name} {author.lastName}</Text>
-          </View>
+          </TouchableOpacity>
         )}
         <View style={styles.progressBarContainer}>
           <ProgressBar progress={isNaN(progress) ? 0 : progress} color="#06038D" style={styles.progressBar} />
@@ -195,7 +144,7 @@ const FundraisePostDetailsScreen = ({ route, navigation }) => {
           ${post.currentAmount || 0} raised of ${post.goal} goal
         </Text>
         <Text style={styles.description}>{post.description}</Text>
-        <TouchableOpacity style={styles.donateButton} onPress={initializePaymentSheet}>
+        <TouchableOpacity style={styles.donateButton}>
           <Text style={styles.donateButtonText}>Donate</Text>
         </TouchableOpacity>
       </View>
@@ -216,13 +165,13 @@ const styles = StyleSheet.create({
   },
   shareButton: {
     position: 'absolute',
-    top: 20,
-    right: 20,
+    top: 30,
+    right: 30,
     zIndex: 1,
   },
   shareButtonCircle: {
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderRadius: 20,
+    borderRadius: 10,
     padding: 5,
     borderWidth: 1,
     borderColor: '#06038D',
@@ -263,6 +212,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 5,
   },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -270,7 +224,7 @@ const styles = StyleSheet.create({
   },
   tagContainer: {
     backgroundColor: '#06038D',
-    borderRadius: 15, // Rounded corners
+    borderRadius: 15,
     paddingVertical: 5,
     paddingHorizontal: 10,
     marginRight: 5,
@@ -324,6 +278,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  errorText: {
+    fontSize: 18,
+    color: 'red',
+    textAlign: 'center',
   },
 });
 

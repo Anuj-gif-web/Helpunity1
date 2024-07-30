@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, Image, ActivityIndicator, Modal, ScrollView, StyleSheet, Share } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { db, auth } from '../firebase/firebaseconfig';
+import { db, auth } from '../../firebase/firebaseconfig';
 import { collection, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import Checkbox from 'expo-checkbox';
 
@@ -152,9 +152,9 @@ const FundraiseScreen = ({ navigation }) => {
 
   const renderItem = ({ item }) => {
     const userLiked = item.likedBy && item.likedBy[user?.uid];
-  
+
     return (
-      <TouchableOpacity onPress={() => navigation.navigate('FundraisePostDetails', { post: item })}>
+      <TouchableOpacity onPress={() => navigation.navigate('FundraisePostDetails', { postId: item.id })}>
         <View style={styles.postCard}>
           <View>
             <Image source={{ uri: item.coverPhoto }} style={styles.postImage} />
@@ -186,7 +186,6 @@ const FundraiseScreen = ({ navigation }) => {
       </TouchableOpacity>
     );
   };
-  
 
   if (loading) {
     return <ActivityIndicator size="large" color="#06038D" />;
@@ -324,7 +323,7 @@ const styles = StyleSheet.create({
   },
   shareButtonCircle: {
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderRadius: 20,
+    borderRadius: 10,
     padding: 5,
     borderWidth: 1,
     borderColor: '#06038D',
@@ -388,6 +387,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 10,
     padding: 20,
+    borderWidth:2,
+    borderColor: '#06038D'
   },
   modalHeader: {
     flexDirection: 'row',

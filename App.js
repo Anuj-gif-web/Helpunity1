@@ -115,56 +115,6 @@ function App() {
     }, 4000);
   }, []);
 
-  const TabNavigator = () => (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-
-          if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Explore') {
-            iconName = focused ? 'compass' : 'compass-outline';
-          } else if (route.name === 'Fundraise') {
-            iconName = focused ? 'hand-heart' : 'hand-heart-outline';
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'account' : 'account-outline';
-          }
-
-          return <MaterialCommunityIcons name={iconName} size={35} color={color} />; // Increase icon size
-        },
-        tabBarActiveTintColor: '#06038D',
-        tabBarInactiveTintColor: 'gray',
-        tabBarShowLabel: false, // Hide labels
-        tabBarStyle: {
-          height: 85, // Increase tab bar height
-          paddingVertical: 10, // Adjust padding to center icons
-        },
-        tabBarIconStyle: {
-          alignItems: 'center', // Center the icons horizontally
-          justifyContent: 'center', // Center the icons vertically
-        }
-      })}
-    >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-      />
-      <Tab.Screen
-        name="Explore"
-        component={ExploreScreen}
-      />
-      <Tab.Screen
-        name="Fundraise"
-        component={FundraiseScreen}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-      />
-    </Tab.Navigator>
-  );
-
   return (
     <StripeProvider publishableKey="pk_test_51Pf9ZIRxmDdLIyjvRoiAd8xUoNkBdP6eg3ykzhCAUvAGr4rFb5gqkrwXtxEOdMJI2s7wIAQ4NrQr9qDdzWugBEwV00dAYmdz8L"> {/* Replace with your Stripe publishable key */}
       <NavigationContainer>
